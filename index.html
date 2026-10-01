@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>くじ引き</title>
+
+<style>
+
+/* =========================
+   基本
+========================= */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Noto Sans JP",
+        sans-serif;
+
+    background: #f4f5f7;
+    color: #222;
+}
+
+.container {
+    width: min(100%, 520px);
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+}
+
+h1 {
+    text-align: center;
+    margin: 10px 0 24px;
+    font-size: 28px;
+}
+
+h2 {
+    margin-top: 0;
+    font-size: 18px;
+}
+
+.card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 16px;
+
+    box-shadow:
+        0 2px 10px
+        rgba(0, 0, 0, 0.06);
+}
+
+.hidden {
+    display: none;
+}
+
+
+/* =========================
+   ボタン共通
+========================= */
+
+button {
+    border: 0;
+    border-radius: 12px;
+
+    font-size: 16px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    touch-action: manipulation;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+
+/* =========================
+   設定画面
+========================= */
+
+.lottery-row {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr)
+        85px
+        44px;
+
+    gap: 8px;
+
+    margin-bottom: 10px;
+}
+
+input {
+    width: 100%;
+
+    padding: 12px;
+
+    font-size: 16px;
+
+    border:
+        1px solid #ccc;
+
+    border-radius: 10px;
+
+    background: #fff;
+}
+
+input:focus {
+    outline: 2px solid #888;
+    outline-offset: 1px;
+}
+
+.remove-button {
+    background: #eee;
+    color: #555;
+}
+
+.add-button {
+    width: 100%;
+
+    padding: 12px;
+
+    margin-top: 4px;
+
+    background: #eceff3;
+    color: #333;
+}
+
+.start-button {
+    width: 100%;
+
+    padding: 18px;
+
+    margin-top: 18px;
+
+    background: #222;
+    color: #fff;
+
+    font-size: 19px;
+}
+
+.error {
+    min-height: 20px;
+
+    margin-top: 10px;
+
+    color: #c62828;
+
+    font-size: 14px;
+}
+
+
+/* =========================
+   抽選画面
+========================= */
+
+.draw-screen {
+    min-height: 100vh;
+}
+
+.remaining {
+    text-align: center;
+
+    font-size: 18px;
+
+    color: #666;
+
+    margin-bottom: 12px;
+}
+
+.result-area {
+    text-align: center;
+
+    padding:
+        42px 10px
+        34px;
+}
+
+.result-label {
+    font-size: 14px;
+
+    color: #777;
+}
+
+.result {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 110px;
+
+    margin: 15px 0;
+
+    font-size: clamp(
+        52px,
+        18vw,
+        88px
+    );
+
+    line-height: 1.1;
+
+    font-weight: bold;
+
+    word-break: break-word;
+
+    transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
+}
+
+
+/* =========================
+   抽選ボタン
+========================= */
+
+.draw-button {
+    width: 100%;
+
+    min-height: 74px;
+
+    padding: 20px;
+
+    background: #222;
+    color: #fff;
+
+    font-size: 23px;
+
+    transition:
+        opacity 0.2s ease,
+        transform 0.1s ease;
+}
+
+.draw-button:disabled {
+    background: #aaa;
+
+    cursor: default;
+}
+
+
+/* =========================
+   抽選演出
+========================= */
+
+.result.shuffling {
+    transform: scale(0.88);
+
+    opacity: 0.55;
+}
+
+.result.result-pop {
+    animation:
+        resultPop
+        0.45s ease;
+}
+
+@keyframes resultPop {
+
+    0% {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+
+    60% {
+        transform: scale(1.18);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+}
+
+
+/* 「？」へ戻る演出 */
+
+.result.resetting {
+    animation:
+        resetResult
+        0.3s ease;
+}
+
+@keyframes resetResult {
+
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(0.85);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+}
+
+
+/* =========================
+   残りくじ
+========================= */
+
+.remaining-list {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 8px;
+}
+
+.remaining-item {
+    padding:
+        7px 12px;
+
+    background: #f0f1f3;
+
+    border-radius: 999px;
+
+    font-size: 14px;
+}
+
+
+/* =========================
+   設定へ戻る
+========================= */
+
+.back-button {
+    width: 100%;
+
+    padding: 12px;
+
+    margin-top: 14px;
+
+    background: transparent;
+
+    color: #777;
+
+    font-weight: normal;
+}
+
+
+/* =========================
+   小さいスマホ
+========================= */
+
+@media (max-width: 360px) {
+
+    .container {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .lottery-row {
+        grid-template-columns:
+            minmax(0, 1fr)
+            75px
+            42px;
+    }
+
+}
+
+</style>
+</head>
+
+
+<body>
+
+
+<!-- =========================
+     設定画面
+========================= -->
+
+<div
+    id="settingsScreen"
+    class="container"
+>
+
+    <h1>くじ引き</h1>
+
+
+    <div class="card">
+
+        <h2>くじの設定</h2>
+
+
+        <div id="lotterySettings"></div>
+
+
+        <button
+            class="add-button"
+            type="button"
+            onclick="addLotteryRow()"
+        >
+            ＋ くじを追加
+        </button>
+
+
+        <div
+            id="errorMessage"
+            class="error"
+        ></div>
+
+
+        <button
+            class="start-button"
+            type="button"
+            onclick="startLottery()"
+        >
+            この内容で抽選開始
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<!-- =========================
+     抽選画面
+========================= -->
+
+<div
+    id="drawScreen"
+    class="container draw-screen hidden"
+>
+
+    <h1>くじ引き</h1>
+
+
+    <div class="card">
+
+        <div
+            id="remainingCount"
+            class="remaining"
+        >
+            残り 0枚
+        </div>
+
+
+        <div class="result-area">
+
+            <div class="result-label">
+                抽選結果
+            </div>
+
+
+            <div
+                id="result"
+                class="result"
+            >
+                ？
+            </div>
+
+        </div>
+
+
+        <button
+            id="drawButton"
+            class="draw-button"
+            type="button"
+            onclick="handleDrawButton()"
+        >
+            くじを引く
+        </button>
+
+    </div>
+
+
+
+    <div class="card">
+
+        <h2>残っているくじ</h2>
+
+
+        <div
+            id="remainingList"
+            class="remaining-list"
+        ></div>
+
+    </div>
+
+
+
+    <button
+        class="back-button"
+        type="button"
+        onclick="backToSettings()"
+    >
+        設定に戻る
+    </button>
+
+</div>
+
+
+
+<script>
+
+/* =========================
+   要素取得
+========================= */
+
+const settingsScreen =
+    document.getElementById(
+        "settingsScreen"
+    );
+
+const drawScreen =
+    document.getElementById(
+        "drawScreen"
+    );
+
+const settingsArea =
+    document.getElementById(
+        "lotterySettings"
+    );
+
+const resultElement =
+    document.getElementById(
+        "result"
+    );
+
+const remainingCountElement =
+    document.getElementById(
+        "remainingCount"
+    );
+
+const remainingListElement =
+    document.getElementById(
+        "remainingList"
+    );
+
+const drawButton =
+    document.getElementById(
+        "drawButton"
+    );
+
+const errorMessage =
+    document.getElementById(
+        "errorMessage"
+    );
+
+
+
+/* =========================
+   状態
+========================= */
+
+let remainingLottery = [];
+
+let showingResult = false;
+
+let isDrawing = false;
+
+
+
+/* =========================
+   初期設定
+========================= */
+
+const defaultLottery = [
+
+    {
+        name: "A",
+        count: 1
+    },
+
+    {
+        name: "B",
+        count: 1
+    },
+
+    {
+        name: "C",
+        count: 1
+    },
+
+    {
+        name: "D",
+        count: 1
+    },
+
+    {
+        name: "E",
+        count: 1
+    }
+
+];
+
+
+
+/* =========================
+   初期化
+========================= */
+
+function initialize() {
+
+    defaultLottery.forEach(
+        item => {
+
+            addLotteryRow(
+                item.name,
+                item.count
+            );
+
+        }
+    );
+
+}
+
+
+
+/* =========================
+   くじ設定行追加
+========================= */
+
+function addLotteryRow(
+    name = "",
+    count = 1
+) {
+
+    const row =
+        document.createElement(
+            "div"
+        );
+
+    row.className =
+        "lottery-row";
+
+
+
+    /* 名前 */
+
+    const nameInput =
+        document.createElement(
+            "input"
+        );
+
+    nameInput.type = "text";
+
+    nameInput.placeholder =
+        "くじ名";
+
+    nameInput.value =
+        name;
+
+
+
+    /* 枚数 */
+
+    const countInput =
+        document.createElement(
+            "input"
+        );
+
+    countInput.type =
+        "number";
+
+    countInput.min =
+        "0";
+
+    countInput.step =
+        "1";
+
+    countInput.inputMode =
+        "numeric";
+
+    countInput.value =
+        count;
+
+
+
+    /* 削除 */
+
+    const removeButton =
+        document.createElement(
+            "button"
+        );
+
+    removeButton.type =
+        "button";
+
+    removeButton.className =
+        "remove-button";
+
+    removeButton.textContent =
+        "×";
+
+
+    removeButton.onclick =
+        () => {
+
+            row.remove();
+
+        };
+
+
+
+    row.appendChild(
+        nameInput
+    );
+
+    row.appendChild(
+        countInput
+    );
+
+    row.appendChild(
+        removeButton
+    );
+
+
+    settingsArea.appendChild(
+        row
+    );
+
+}
+
+
+
+/* =========================
+   設定内容取得
+========================= */
+
+function getLotterySettings() {
+
+    const rows =
+        settingsArea
+            .querySelectorAll(
+                ".lottery-row"
+            );
+
+
+    const lottery = [];
+
+
+    errorMessage.textContent =
+        "";
+
+
+    for (
+        const row
+        of rows
+    ) {
+
+        const inputs =
+            row.querySelectorAll(
+                "input"
+            );
+
+
+        const name =
+            inputs[0]
+                .value
+                .trim();
+
+
+        const count =
+            Number(
+                inputs[1].value
+            );
+
+
+
+        /*
+            名前だけ空欄なら
+            その行は無視
+        */
+
+        if (!name) {
+
+            continue;
+
+        }
+
+
+
+        /*
+            枚数チェック
+        */
+
+        if (
+            !Number.isInteger(
+                count
+            )
+            ||
+            count < 0
+        ) {
+
+            errorMessage.textContent =
+                "枚数は0以上の整数で入力してください。";
+
+            return null;
+
+        }
+
+
+
+        if (
+            count === 0
+        ) {
+
+            continue;
+
+        }
+
+
+
+        lottery.push({
+
+            name:
+                name,
+
+            count:
+                count
+
+        });
+
+    }
+
+
+
+    if (
+        lottery.length === 0
+    ) {
+
+        errorMessage.textContent =
+            "くじを1つ以上設定してください。";
+
+        return null;
+
+    }
+
+
+    return lottery;
+
+}
+
+
+
+/* =========================
+   抽選開始
+========================= */
+
+function startLottery() {
+
+    const lottery =
+        getLotterySettings();
+
+
+    if (!lottery) {
+
+        return;
+
+    }
+
+
+
+    remainingLottery =
+        lottery.map(
+            item => ({
+
+                name:
+                    item.name,
+
+                count:
+                    item.count
+
+            })
+        );
+
+
+    showingResult =
+        false;
+
+    isDrawing =
+        false;
+
+
+    resultElement.textContent =
+        "？";
+
+
+    resultElement.classList.remove(
+        "result-pop",
+        "shuffling",
+        "resetting"
+    );
+
+
+    settingsScreen.classList.add(
+        "hidden"
+    );
+
+
+    drawScreen.classList.remove(
+        "hidden"
+    );
+
+
+    updateDisplay();
+
+}
+
+
+
+/* =========================
+   抽選ボタン処理
+========================= */
+
+async function handleDrawButton() {
+
+    /*
+        抽選中の連打防止
+    */
+
+    if (isDrawing) {
+
+        return;
+
+    }
+
+
+
+    /*
+        結果が出ている場合
+
+        抽選はせず、
+        一度「？」へ戻す
+    */
+
+    if (showingResult) {
+
+        await resetResult();
+
+        return;
+
+    }
+
+
+
+    /*
+        通常時は抽選
+    */
+
+    await drawLottery();
+
+}
+
+
+
+/* =========================
+   「？」へ戻す
+========================= */
+
+async function resetResult() {
+
+    showingResult =
+        false;
+
+
+    resultElement.classList.remove(
+        "result-pop"
+    );
+
+
+    resultElement.classList.add(
+        "resetting"
+    );
+
+
+
+    await sleep(150);
+
+
+    resultElement.textContent =
+        "？";
+
+
+
+    await sleep(150);
+
+
+    resultElement.classList.remove(
+        "resetting"
+    );
+
+
+    updateDisplay();
+
+}
+
+
+
+/* =========================
+   抽選
+========================= */
+
+async function drawLottery() {
+
+    const total =
+        getTotalRemaining();
+
+
+    if (
+        total <= 0
+    ) {
+
+        return;
+
+    }
+
+
+
+    isDrawing =
+        true;
+
+
+    drawButton.disabled =
+        true;
+
+
+    drawButton.textContent =
+        "抽選中…";
+
+
+    resultElement.classList.remove(
+        "result-pop"
+    );
+
+
+    resultElement.classList.add(
+        "shuffling"
+    );
+
+
+
+    /*
+        残っている種類のみ
+        演出候補にする
+    */
+
+    const candidates =
+        remainingLottery
+            .filter(
+                item =>
+                    item.count > 0
+            )
+            .map(
+                item =>
+                    item.name
+            );
+
+
+
+    /*
+        約1秒間
+        高速切り替え
+    */
+
+    const animationTime =
+        1000;
+
+    const intervalTime =
+        80;
+
+    const start =
+        Date.now();
+
+
+
+    await new Promise(
+        resolve => {
+
+            const timer =
+                setInterval(
+                    () => {
+
+                        const index =
+                            Math.floor(
+                                Math.random()
+                                *
+                                candidates.length
+                            );
+
+
+                        resultElement.textContent =
+                            candidates[index];
+
+
+
+                        if (
+                            Date.now()
+                            -
+                            start
+                            >=
+                            animationTime
+                        ) {
+
+                            clearInterval(
+                                timer
+                            );
+
+                            resolve();
+
+                        }
+
+                    },
+                    intervalTime
+                );
+
+        }
+    );
+
+
+
+    /*
+        実際の抽選
+    */
+
+    const random =
+        getRandomInteger(
+            total
+        );
+
+
+    let position =
+        0;
+
+
+    let selected =
+        null;
+
+
+
+    for (
+        const item
+        of remainingLottery
+    ) {
+
+        position +=
+            item.count;
+
+
+        if (
+            random
+            <
+            position
+        ) {
+
+            selected =
+                item;
+
+            break;
+
+        }
+
+    }
+
+
+
+    if (!selected) {
+
+        isDrawing =
+            false;
+
+        updateDisplay();
+
+        return;
+
+    }
+
+
+
+    /*
+        引いた分を減らす
+    */
+
+    selected.count--;
+
+
+
+    /*
+        結果表示
+    */
+
+    resultElement.classList.remove(
+        "shuffling"
+    );
+
+
+    resultElement.textContent =
+        selected.name;
+
+
+
+    /*
+        アニメーションを
+        毎回再実行させる
+    */
+
+    void resultElement.offsetWidth;
+
+
+    resultElement.classList.add(
+        "result-pop"
+    );
+
+
+
+    /*
+        対応スマホなら振動
+    */
+
+    if (
+        navigator.vibrate
+    ) {
+
+        navigator.vibrate(
+            [
+                50,
+                40,
+                100
+            ]
+        );
+
+    }
+
+
+
+    showingResult =
+        true;
+
+    isDrawing =
+        false;
+
+
+    updateDisplay();
+
+}
+
+
+
+/* =========================
+   ランダム整数
+========================= */
+
+function getRandomInteger(
+    max
+) {
+
+    /*
+        crypto が利用可能なら
+        こちらを優先
+    */
+
+    if (
+        window.crypto
+        &&
+        window.crypto
+            .getRandomValues
+    ) {
+
+        const array =
+            new Uint32Array(
+                1
+            );
+
+
+        window.crypto
+            .getRandomValues(
+                array
+            );
+
+
+        return (
+            array[0]
+            %
+            max
+        );
+
+    }
+
+
+
+    /*
+        非対応時
+    */
+
+    return Math.floor(
+        Math.random()
+        *
+        max
+    );
+
+}
+
+
+
+/* =========================
+   残り総数
+========================= */
+
+function getTotalRemaining() {
+
+    return remainingLottery
+        .reduce(
+            (
+                total,
+                item
+            ) =>
+                total
+                +
+                item.count,
+            0
+        );
+
+}
+
+
+
+/* =========================
+   表示更新
+========================= */
+
+function updateDisplay() {
+
+    const total =
+        getTotalRemaining();
+
+
+
+    /*
+        残り総数
+    */
+
+    remainingCountElement.textContent =
+        `残り ${total}枚`;
+
+
+
+    /*
+        ボタン
+    */
+
+    if (
+        isDrawing
+    ) {
+
+        drawButton.disabled =
+            true;
+
+        drawButton.textContent =
+            "抽選中…";
+
+    }
+
+    else if (
+        showingResult
+    ) {
+
+        drawButton.disabled =
+            false;
+
+
+        /*
+            最後のくじでも
+            一度「？」へ戻せる
+        */
+
+        if (
+            total === 0
+        ) {
+
+            drawButton.textContent =
+                "結果を閉じる";
+
+        }
+
+        else {
+
+            drawButton.textContent =
+                "次のくじへ";
+
+        }
+
+    }
+
+    else if (
+        total === 0
+    ) {
+
+        drawButton.disabled =
+            true;
+
+        drawButton.textContent =
+            "すべて引き終わりました";
+
+    }
+
+    else {
+
+        drawButton.disabled =
+            false;
+
+        drawButton.textContent =
+            "くじを引く";
+
+    }
+
+
+
+    /*
+        残り一覧
+    */
+
+    remainingListElement.innerHTML =
+        "";
+
+
+    remainingLottery.forEach(
+        item => {
+
+            const element =
+                document.createElement(
+                    "div"
+                );
+
+
+            element.className =
+                "remaining-item";
+
+
+            element.textContent =
+                `${item.name}：${item.count}枚`;
+
+
+            remainingListElement
+                .appendChild(
+                    element
+                );
+
+        }
+    );
+
+}
+
+
+
+/* =========================
+   設定画面へ戻る
+========================= */
+
+function backToSettings() {
+
+    /*
+        まだ一枚も引いていない場合も含めて
+        誤操作防止の確認
+    */
+
+    const ok =
+        window.confirm(
+            "抽選を終了して設定画面に戻りますか？"
+        );
+
+
+    if (!ok) {
+
+        return;
+
+    }
+
+
+    showingResult =
+        false;
+
+    isDrawing =
+        false;
+
+
+    resultElement.textContent =
+        "？";
+
+
+    drawScreen.classList.add(
+        "hidden"
+    );
+
+
+    settingsScreen.classList.remove(
+        "hidden"
+    );
+
+}
+
+
+
+/* =========================
+   待機
+========================= */
+
+function sleep(
+    milliseconds
+) {
+
+    return new Promise(
+        resolve =>
+            setTimeout(
+                resolve,
+                milliseconds
+            )
+    );
+
+}
+
+
+
+/* =========================
+   開始
+========================= */
+
+initialize();
+
+</script>
+
+</body>
+</html>
